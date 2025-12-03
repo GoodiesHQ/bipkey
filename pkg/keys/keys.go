@@ -1,0 +1,74 @@
+package keys
+
+import (
+	"crypto"
+	"encoding/pem"
+	"fmt"
+
+	"github.com/tyler-smith/go-bip39"
+)
+
+type KeyType string
+
+const (
+	KeyTypeNone KeyType = ""
+	KeyTypeECC  KeyType = "ECC"
+	KeyTypeRSA  KeyType = "RSA"
+)
+
+type Key struct {
+	keyType    KeyType //
+	keySize    int32
+	salt       string
+	PrivateKey crypto.PrivateKey
+	Der        []byte
+	mnemonic   Mnemonic
+}
+
+var longestWordLen int
+var formatWord string
+
+func init() {
+	for _, word := range bip39.GetWordList() {
+		if len(word) > longestWordLen {
+			longestWordLen = len(word)
+		}
+	}
+
+	formatWord = fmt.Sprintf("%%02d: %%-%ds", longestWordLen+1)
+}
+
+func (k Key) PEM() string {
+	return string(pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: k.Der,
+	}))
+}
+
+func (k *Key) Display() {
+	const cols = 6
+
+	// Display key information
+	fmt.Printf("Key Type: %s\n", k.keyType)
+	fmt.Printf("Key Size: %d\n", k.keySize)
+	if k.salt == "" {
+		fmt.Printf("Key Salt: (none)\n")
+	} else {
+		fmt.Printf("Key Salt: \"%s\"\n", k.salt)
+	}
+
+	fmt.Println("\nMnemonic Words:")
+	for i, word := range k.mnemonic {
+		fmt.Printf(formatWord, i+1, word)
+		if i%cols == cols-1 {
+			fmt.Println()
+		}
+	}
+	fmt.Println()
+	fmt.Println(k.mnemonic.String())
+
+	fmt.Println("\nPrivate Key (PEM):")
+	fmt.Println()
+
+	fmt.Println(k.PEM())
+}
