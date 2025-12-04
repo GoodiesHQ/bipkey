@@ -22,6 +22,20 @@ const (
 	ECCCurveEd25519
 )
 
+func getSizeECC(id ECCCurveID) int {
+	switch id {
+	case ECCCurveP256:
+		return 256
+	case ECCCurveP384:
+		return 384
+	case ECCCurveP521:
+		return 521
+	case ECCCurveEd25519:
+		return 256
+	}
+	return 0
+}
+
 // eccCurveInfo holds information and aliases about supported ECC curves
 type eccCurveInfo struct {
 	ID      ECCCurveID // associated ECCCurveID
@@ -33,17 +47,17 @@ var supportedECCCurves = []eccCurveInfo{
 	{
 		ID:      ECCCurveP256,
 		Name:    "P-256",
-		Aliases: []string{"256", "p-256", "p256", "secp256r1"},
+		Aliases: []string{"256", "p-256", "p256", "secp256r1", "prime256v1"},
 	},
 	{
 		ID:      ECCCurveP384,
 		Name:    "P-384",
-		Aliases: []string{"384", "p-384", "p384", "secp384r1"},
+		Aliases: []string{"384", "p-384", "p384", "secp384r1", "prime384v1"},
 	},
 	{
 		ID:      ECCCurveP521,
 		Name:    "P-521",
-		Aliases: []string{"521", "p-521", "p521", "secp521r1"},
+		Aliases: []string{"521", "p-521", "p521", "secp521r1", "prime521v1"},
 	},
 	{
 		ID:      ECCCurveEd25519,
@@ -61,6 +75,16 @@ func init() {
 			eccAliases[strings.ToLower(alias)] = info
 		}
 	}
+}
+
+// SupportedECC returns a string listing supported ECC curves and their aliases
+func SupportedECC() string {
+	var builder strings.Builder
+	builder.WriteString("Supported ECC curves:\n")
+	for _, info := range supportedECCCurves {
+		builder.WriteString(fmt.Sprintf(" - %s (aliases: %s)\n", info.Name, strings.Join(info.Aliases, ", ")))
+	}
+	return builder.String()
 }
 
 // ParseECCCurve parses the given string to determine the ECCCurveID

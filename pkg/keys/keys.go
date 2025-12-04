@@ -53,25 +53,9 @@ func (k *Key) Display() {
 	var keySize int
 	switch k.keyType {
 	case KeyTypeECC:
-		switch ECCCurveID(k.keyId) {
-		case ECCCurveP256:
-			keySize = 256
-		case ECCCurveP384:
-			keySize = 384
-		case ECCCurveP521:
-			keySize = 521
-		case ECCCurveEd25519:
-			keySize = 256
-		}
+		keySize = getSizeECC(ECCCurveID(k.keyId))
 	case KeyTypeRSA:
-		switch RSAKeyID(k.keyId) {
-		case RSAKey2048:
-			keySize = 2048
-		case RSAKey3072:
-			keySize = 3072
-		case RSAKey4096:
-			keySize = 4096
-		}
+		keySize = getSizeRSA(RSAKeyID(k.keyId))
 	}
 
 	fmt.Printf("Key Size: %d\n", keySize)

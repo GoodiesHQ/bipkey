@@ -17,7 +17,33 @@ const (
 	RSAKey2048
 	RSAKey3072
 	RSAKey4096
+	RSAKey8192
 )
+
+func getSizeRSA(id RSAKeyID) int {
+	switch id {
+	case RSAKey2048:
+		return 2048
+	case RSAKey3072:
+		return 3072
+	case RSAKey4096:
+		return 4096
+	case RSAKey8192:
+		return 8192
+	}
+	return 0
+}
+
+// SupportedRSA returns a string listing supported RSA key sizes
+func SupportedRSA() string {
+	var builder strings.Builder
+	builder.WriteString("Supported RSA sizes:\n")
+	builder.WriteString(fmt.Sprintf(" - %d\n", getSizeRSA(RSAKey2048)))
+	builder.WriteString(fmt.Sprintf(" - %d\n", getSizeRSA(RSAKey3072)))
+	builder.WriteString(fmt.Sprintf(" - %d\n", getSizeRSA(RSAKey4096)))
+	builder.WriteString(fmt.Sprintf(" - %d\n", getSizeRSA(RSAKey8192)))
+	return builder.String()
+}
 
 // ParseRSAKeyID parses the given string to determine the RSAKeyID
 func ParseRSAKeyID(val string) (RSAKeyID, error) {
@@ -33,6 +59,8 @@ func ParseRSAKeyID(val string) (RSAKeyID, error) {
 		return RSAKey3072, nil
 	case "4096":
 		return RSAKey4096, nil
+	case "8192":
+		return RSAKey8192, nil
 	default:
 		return RSAKeyNone, fmt.Errorf("unsupported RSA key size")
 	}
@@ -40,15 +68,8 @@ func ParseRSAKeyID(val string) (RSAKeyID, error) {
 
 // generateRSA generates an RSA private key using the provided reader for randomness
 func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
-	var size int
-	switch id {
-	case RSAKey2048:
-		size = 2048
-	case RSAKey3072:
-		size = 3072
-	case RSAKey4096:
-		size = 4096
-	default:
+	var size = getSizeRSA(id)
+	if size == 0 {
 		return nil, fmt.Errorf("unsupported RSA key size")
 	}
 

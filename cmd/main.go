@@ -27,7 +27,7 @@ func init() {
 		Name:        "bipkey",
 		Usage:       "Generate and restore RSA/ECC private keys from BIP-39 mnemonics",
 		Description: "bipkey is a tool to generate and restore deterministic RSA/ECC private keys from BIP-39 mnemonics. Used for secure key backup and recovery for offline Certificate Authorities.",
-		UsageText:   "bipkey [-ecc <curve size> | -rsa <key size>] [-salt <salt value>] [generate/restore]",
+		UsageText:   "bipkey [-ecc <curve> | -rsa <key size>] [-salt <salt value>] [generate/restore]",
 		Commands: []*cli.Command{
 			{
 				Name:   "generate",
@@ -70,6 +70,7 @@ func init() {
 				Validator: func(val string) error {
 					id, err := keys.ParseECCCurve(val)
 					if err != nil {
+						fmt.Printf("%s\n", keys.SupportedECC())
 						return cli.Exit(err.Error(), 1)
 					}
 
@@ -84,6 +85,8 @@ func init() {
 					case keys.ECCCurveEd25519:
 						log.Debug().Msg("Using Ed25519 curve for ECC key generation.")
 						log.Warn().Msg("Using Ed25519 curve may have performance or compatibility implications. Ensure your environment supports it adequately.")
+					default:
+						return cli.Exit("unsupported ECC curve", 1)
 					}
 					return nil
 				},
@@ -95,8 +98,10 @@ func init() {
 				Validator: func(val string) error {
 					id, err := keys.ParseRSAKeyID(val)
 					if err != nil {
+						fmt.Printf("%s\n", keys.SupportedRSA())
 						return cli.Exit(err.Error(), 1)
 					}
+
 					switch id {
 					case keys.RSAKey2048:
 						log.Debug().Msg("Using 2048-bit RSA key size for generation.")
@@ -104,6 +109,11 @@ func init() {
 						log.Debug().Msg("Using 3072-bit RSA key size for generation.")
 					case keys.RSAKey4096:
 						log.Debug().Msg("Using 4096-bit RSA key size for generation.")
+					case keys.RSAKey8192:
+						log.Debug().Msg("Using 8192-bit RSA key size for generation.")
+						log.Warn().Msg("Using RSA-8192 may have performance or compatibility implications. Ensure your environment supports it adequately.")
+					default:
+						return cli.Exit("unsupported RSA key size", 1)
 					}
 					return nil
 				},
@@ -127,7 +137,7 @@ func main() {
 		if err == context.Canceled {
 			return
 		}
-		log.Fatal().Err(err).Msg("Application error")
+		// log.Fatal().Err(err).Msg("Application error")
 	}
 }
 
@@ -237,6 +247,7 @@ func promptMnemonic() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read mnemonic input: %w", err)
 	}
+	fmt.Println()
 
 	mnemonicString = strings.TrimSpace(line)
 	return mnemonicString, nil
