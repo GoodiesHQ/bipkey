@@ -42,7 +42,7 @@ Some key types (P-521, Ed25519, RSA-8192) come with a warning: **\_\_\_\_\_\_\_ 
 
 **Example:**
 
-    # go run ./cmd/main.go generate --ecc 384 -salt "MyExampleSalt"
+    # bipkey generate --ecc 384 -salt "MyExampleSalt"
     Key Type: ECC
     Key Size: 384
     Key Salt: "MyExampleSalt"
@@ -87,7 +87,7 @@ Restoring the key can be done using the mnemonic phrase and the original salt (i
 
 **Example:**
 
-    # go run ./cmd/main.go restore --ecc 384 -salt "MyExampleSalt"   
+    # bipkey restore --ecc 384 -salt "MyExampleSalt"   
     Please enter your 24-word mnemonic recovery key in order (separated by spaces):
     TOSS WATE TILT CABL RADI CHRO CAR ETHI CHRO BETT INDO CHAT CODE CARR MORE HARB ESCA PILO PANT TOOT BRAV CABL EMPL BLAS
     
