@@ -10,6 +10,8 @@ import (
 	"io"
 	"math/big"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ECCCurveID int
@@ -141,6 +143,7 @@ func generateNistECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate scalar: %w", err)
 	}
+	log.Debug().Msg("Generated random scalar for ECC private key.")
 
 	// Convert to ECDH private key first
 	scalarBytes := make([]byte, scalarSize)

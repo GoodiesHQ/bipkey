@@ -6,6 +6,8 @@ import (
 	"io"
 	"math/big"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 const PRIMALITY_TESTS = 256
@@ -80,6 +82,7 @@ func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate prime p: %w", err)
 	}
+	log.Debug().Msg("Generated prime p for RSA key.")
 
 	q := p
 	// ensure p and q are distinct primes
@@ -89,6 +92,7 @@ func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
 			return nil, fmt.Errorf("failed to generate distinct prime q: %w", err)
 		}
 	}
+	log.Debug().Msg("Generated prime q for RSA key.")
 
 	// compute RSA private key components
 	n := new(big.Int).Mul(p, q)
@@ -113,6 +117,7 @@ func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
 	if err := priv.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid RSA key: %w", err)
 	}
+	log.Debug().Msg("Constructed and validated RSA private key.")
 	return priv, nil
 }
 
@@ -132,7 +137,13 @@ func derivePrime(r io.Reader, bits int) (*big.Int, error) {
 	k := new(big.Int).SetBytes(buf)
 
 	two := big.NewInt(2)
+	count := 0
+	defer func() {
+		log.Debug().Msgf("Derived prime after %d attempts.", count)
+	}()
+
 	for {
+		count++
 		// test for primality
 		if k.ProbablyPrime(PRIMALITY_TESTS) {
 			return k, nil
