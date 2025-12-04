@@ -55,9 +55,10 @@ func init() {
 				Aliases: []string{"v"},
 			},
 			&cli.StringFlag{
-				Name:  "salt",
-				Usage: "Required salt value for key derivation",
-				Value: "",
+				Name:    "salt",
+				Aliases: []string{"s"},
+				Usage:   "(Recommended) optional salt value for key derivation",
+				Value:   "",
 				Validator: func(val string) error {
 					if val == "" {
 						return cli.Exit("Salt value cannot be empty.", 1)
@@ -70,7 +71,7 @@ func init() {
 			},
 			&cli.StringFlag{
 				Name:  "ecc",
-				Usage: "Generate an ECC private key with the specified curve bit size (256, 384, 521)",
+				Usage: "Generate an ECC private key with the specified curve (e.g. p256, p384, p521, ed25519)",
 				Value: "",
 				Validator: func(val string) error {
 					id, err := keys.ParseECCCurve(val)
