@@ -30,16 +30,22 @@ func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, keyId int, sa
 	kdf := hkdf.New(sha256.New, seed, saltBytes, nil)
 	log.Debug().Msg("Initialized HKDF-SHA256 using BIP39 seed + salt for key derivation.")
 
+	// create ChaCha20 stream cipher from KDF output, to use as a DRBG for key generation
+	stream, err := NewStreamChaCha20(kdf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ChaCha20 stream cipher for key derivation: %w", err)
+	}
+
 	var privKey crypto.PrivateKey
 
 	switch keyType {
 	case KeyTypeECC:
-		privKey, err = generateECC(kdf, ECCCurveID(keyId))
+		privKey, err = generateECC(stream, ECCCurveID(keyId))
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ECC key: %w", err)
 		}
 	case KeyTypeRSA:
-		privKey, err = generateRSA(kdf, RSAKeyID(keyId))
+		privKey, err = generateRSA(stream, RSAKeyID(keyId))
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ECC key: %w", err)
 		}

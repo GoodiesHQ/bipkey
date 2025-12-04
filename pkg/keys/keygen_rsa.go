@@ -4,10 +4,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
-	"math/big"
 	"strings"
-
-	"github.com/rs/zerolog/log"
 )
 
 const PRIMALITY_TESTS = 256
@@ -68,6 +65,17 @@ func ParseRSAKeyID(val string) (RSAKeyID, error) {
 	}
 }
 
+// generateRSA generates an RSA private key using the provided reader for randomness
+func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
+	var size = getSizeRSA(id)
+	if size == 0 {
+		return nil, fmt.Errorf("unsupported RSA key size")
+	}
+
+	return rsa.GenerateKey(r, size)
+}
+
+/*
 // generateRSA generates an RSA private key using the provided reader for randomness
 func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
 	var size = getSizeRSA(id)
@@ -153,3 +161,4 @@ func derivePrime(r io.Reader, bits int) (*big.Int, error) {
 		k.Add(k, two)
 	}
 }
+*/

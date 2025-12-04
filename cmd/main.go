@@ -240,6 +240,7 @@ func actionGenerate(ctx context.Context, c *cli.Command) error {
 
 	k, err := keys.GenerateKey(ctx, keyType, keyId, salt)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate key")
 		return err
 	}
 	k.Display()
