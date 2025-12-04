@@ -75,6 +75,14 @@ func init() {
 	bip39Words = bip39.GetWordList()
 }
 
+func MustParseMnemonic(mnemonicString string) Mnemonic {
+	mnemonic, err := ParseMnemonic(mnemonicString)
+	if err != nil {
+		panic(err)
+	}
+	return mnemonic
+}
+
 func ParseMnemonic(mnemonicString string) (Mnemonic, error) {
 	words := strings.Fields(strings.TrimSpace(mnemonicString))
 	if len(words) != MNEMONIC_WORD_COUNT {
