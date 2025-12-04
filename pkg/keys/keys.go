@@ -2,9 +2,11 @@ package keys
 
 import (
 	"crypto"
+	"crypto/sha256"
 	"encoding/pem"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -45,6 +47,16 @@ func (k Key) PEM() string {
 	}))
 }
 
+func (k Key) Fingerprint() string {
+	pem := k.PEM()
+	h := sha256.New()
+	_, err := h.Write([]byte(pem))
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 func (k *Key) Display() {
 	const cols = 6
 
@@ -78,5 +90,6 @@ func (k *Key) Display() {
 	fmt.Println("\nPrivate Key (PEM):")
 	fmt.Println()
 
+	log.Debug().Str("fingerprint", k.Fingerprint()).Msg("Generated key fingerprint.")
 	fmt.Println(k.PEM())
 }
