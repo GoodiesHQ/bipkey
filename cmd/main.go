@@ -63,45 +63,49 @@ func init() {
 					return nil
 				},
 			},
-			&cli.Int32Flag{
+			&cli.StringFlag{
 				Name:  "ecc",
 				Usage: "Generate an ECC private key with the specified curve bit size (256, 384, 521)",
-				Value: 0,
-				Validator: func(val int32) error {
-					valid := []int32{
-						0,   // no ECC generation
-						256, // P-256
-						384, // P-384
-						521, // P-521
+				Value: "",
+				Validator: func(val string) error {
+					id, err := keys.ParseECCCurve(val)
+					if err != nil {
+						return cli.Exit(err.Error(), 1)
 					}
-					for _, v := range valid {
-						if val == v {
-							if val == 521 {
-								log.Warn().Msg("Using P-521 curve may have performance implications. Ensure your environment supports it adequately.")
-							}
-							return nil
-						}
+
+					switch id {
+					case keys.ECCCurveP256:
+						log.Debug().Msg("Using P-256 curve for ECC key generation.")
+					case keys.ECCCurveP384:
+						log.Debug().Msg("Using P-384 curve for ECC key generation.")
+					case keys.ECCCurveP521:
+						log.Debug().Msg("Using P-521 curve for ECC key generation.")
+						log.Warn().Msg("Using P-521 curve may have performance or compatibility implications. Ensure your environment supports it adequately.")
+					case keys.ECCCurveEd25519:
+						log.Debug().Msg("Using Ed25519 curve for ECC key generation.")
+						log.Warn().Msg("Using Ed25519 curve may have performance or compatibility implications. Ensure your environment supports it adequately.")
 					}
-					return cli.Exit("Invalid ECC curve size. Supported sizes are 256, 384, 521.", 1)
+					return nil
 				},
 			},
-			&cli.Int32Flag{
+			&cli.StringFlag{
 				Name:  "rsa",
 				Usage: "Generate an RSA private key with the specified bit size (2048, 3072, 4096)",
-				Value: 0,
-				Validator: func(val int32) error {
-					valid := []int32{
-						0,    // no RSA generation
-						2048, // 2048 bits
-						3072, // 3072 bits
-						4096, // 4096 bits
+				Value: "",
+				Validator: func(val string) error {
+					id, err := keys.ParseRSAKeyID(val)
+					if err != nil {
+						return cli.Exit(err.Error(), 1)
 					}
-					for _, v := range valid {
-						if val == v {
-							return nil
-						}
+					switch id {
+					case keys.RSAKey2048:
+						log.Debug().Msg("Using 2048-bit RSA key size for generation.")
+					case keys.RSAKey3072:
+						log.Debug().Msg("Using 3072-bit RSA key size for generation.")
+					case keys.RSAKey4096:
+						log.Debug().Msg("Using 4096-bit RSA key size for generation.")
 					}
-					return cli.Exit("Invalid RSA key size. Supported sizes are 2048, 3072, 4096.", 1)
+					return nil
 				},
 			},
 			&cli.StringFlag{
@@ -152,35 +156,43 @@ func writeFile(c *cli.Command, data string) error {
 }
 
 // getKeyInfo retrieves the key type, size, and salt from the command flags
-func getKeyInfo(c *cli.Command) (keys.KeyType, int32, string, error) {
-	sizeEcc := c.Int32("ecc")
-	sizeRsa := c.Int32("rsa")
+func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
+	eccOpt := c.String("ecc")
+	rsaOpt := c.String("rsa")
 	salt := c.String("salt")
 
 	// key info defaults
 	keyType := keys.KeyTypeNone
-	keySize := int32(0)
+	keyId := 0
 
 	// RSA or ECC must be specified
-	if sizeEcc == 0 && sizeRsa == 0 {
+	if eccOpt == "" && rsaOpt == "" {
 		return keys.KeyTypeNone, 0, "", cli.Exit("At least one of -ecc or -rsa flags must be specified.", 1)
 	}
 
 	// both ECC and RSA cannot be specified
-	if sizeEcc != 0 && sizeRsa != 0 {
+	if eccOpt != "" && rsaOpt != "" {
 		return keys.KeyTypeNone, 0, "", cli.Exit("Only one of -ecc or -rsa flags may be specified.", 1)
 	}
 
-	if sizeEcc != 0 {
+	if eccOpt != "" {
 		// use ECC key type
 		keyType = keys.KeyTypeECC
-		keySize = sizeEcc
+		eccId, err := keys.ParseECCCurve(eccOpt)
+		if err != nil {
+			return keys.KeyTypeNone, 0, "", cli.Exit(err.Error(), 1)
+		}
+		keyId = int(eccId)
 	}
 
-	if sizeRsa != 0 {
+	if rsaOpt != "" {
 		// use RSA key type
 		keyType = keys.KeyTypeRSA
-		keySize = sizeRsa
+		rsaId, err := keys.ParseRSAKeyID(rsaOpt)
+		if err != nil {
+			return keys.KeyTypeNone, 0, "", cli.Exit(err.Error(), 1)
+		}
+		keyId = int(rsaId)
 	}
 
 	// validate key type and size
@@ -193,17 +205,17 @@ func getKeyInfo(c *cli.Command) (keys.KeyType, int32, string, error) {
 		log.Warn().Msg("Salt value is not provided. It's recommended to use a salt value for better security.")
 	}
 
-	return keyType, keySize, salt, nil
+	return keyType, keyId, salt, nil
 }
 
 // actionGenerate generates a new private key and mnemonic based on the provided command flags
 func actionGenerate(ctx context.Context, c *cli.Command) error {
-	keyType, keySize, salt, err := getKeyInfo(c)
+	keyType, keyId, salt, err := getKeyInfo(c)
 	if err != nil {
 		return err
 	}
 
-	k, err := keys.GenerateKey(ctx, keyType, keySize, salt)
+	k, err := keys.GenerateKey(ctx, keyType, keyId, salt)
 	if err != nil {
 		return err
 	}

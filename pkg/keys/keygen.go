@@ -12,7 +12,7 @@ import (
 )
 
 // GenerateKeyFromMnemonic generates a deterministic private key from the provided mnemonic and salt
-func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, size int32, salt string, mnemonic Mnemonic) (*Key, error) {
+func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, keyId int, salt string, mnemonic Mnemonic) (*Key, error) {
 	saltBytes := []byte(salt)
 
 	mnemonic, err := mnemonic.Normalize()
@@ -30,12 +30,12 @@ func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, size int32, s
 
 	switch keyType {
 	case KeyTypeECC:
-		privKey, err = generateECC(kdf, size)
+		privKey, err = generateECC(kdf, ECCCurveID(keyId))
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ECC key: %w", err)
 		}
 	case KeyTypeRSA:
-		privKey, err = generateRSA(kdf, size)
+		privKey, err = generateRSA(kdf, RSAKeyID(keyId))
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ECC key: %w", err)
 		}
@@ -51,7 +51,7 @@ func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, size int32, s
 
 	return &Key{
 		keyType:    keyType,
-		keySize:    size,
+		keyId:      keyId,
 		salt:       salt,
 		PrivateKey: privKey,
 		Der:        der,
@@ -60,17 +60,11 @@ func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, size int32, s
 }
 
 // GenerateKey generates a new deterministic private key and mnemonic
-func GenerateKey(ctx context.Context, keyType KeyType, size int32, salt string) (*Key, error) {
+func GenerateKey(ctx context.Context, keyType KeyType, keyId int, salt string) (*Key, error) {
 	mnemonic, err := GenerateMnemonic(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate mnemonic: %w", err)
 	}
 
-	// convert any short words to full words
-	mnemonicNormalized, err := mnemonic.Normalize()
-	if err != nil {
-		return nil, fmt.Errorf("failed to normalize mnemonic: %w", err)
-	}
-
-	return GenerateKeyFromMnemonic(ctx, keyType, size, salt, mnemonicNormalized)
+	return GenerateKeyFromMnemonic(ctx, keyType, keyId, salt, *mnemonic)
 }

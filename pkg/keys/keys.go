@@ -17,8 +17,8 @@ const (
 )
 
 type Key struct {
-	keyType    KeyType //
-	keySize    int32
+	keyType    KeyType
+	keyId      int
 	salt       string
 	PrivateKey crypto.PrivateKey
 	Der        []byte
@@ -50,7 +50,31 @@ func (k *Key) Display() {
 
 	// Display key information
 	fmt.Printf("Key Type: %s\n", k.keyType)
-	fmt.Printf("Key Size: %d\n", k.keySize)
+	var keySize int
+	switch k.keyType {
+	case KeyTypeECC:
+		switch ECCCurveID(k.keyId) {
+		case ECCCurveP256:
+			keySize = 256
+		case ECCCurveP384:
+			keySize = 384
+		case ECCCurveP521:
+			keySize = 521
+		case ECCCurveEd25519:
+			keySize = 256
+		}
+	case KeyTypeRSA:
+		switch RSAKeyID(k.keyId) {
+		case RSAKey2048:
+			keySize = 2048
+		case RSAKey3072:
+			keySize = 3072
+		case RSAKey4096:
+			keySize = 4096
+		}
+	}
+
+	fmt.Printf("Key Size: %d\n", keySize)
 	if k.salt == "" {
 		fmt.Printf("Key Salt: (none)\n")
 	} else {
