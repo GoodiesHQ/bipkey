@@ -49,6 +49,11 @@ func init() {
 			},
 		},
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "verbose",
+				Usage:   "Enable verbose logging output",
+				Aliases: []string{"v"},
+			},
 			&cli.StringFlag{
 				Name:  "salt",
 				Usage: "Required salt value for key derivation",
@@ -141,6 +146,12 @@ func main() {
 	}
 }
 
+func setLogging(c *cli.Command) {
+	if c.Bool("verbose") {
+		log.Logger = log.Logger.Level(zerolog.DebugLevel)
+	}
+}
+
 // writeFile writes the provided data to the specified output file
 func writeFile(c *cli.Command, data string) error {
 	// If no output file is specified, return early
@@ -220,6 +231,7 @@ func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
 
 // actionGenerate generates a new private key and mnemonic based on the provided command flags
 func actionGenerate(ctx context.Context, c *cli.Command) error {
+	setLogging(c)
 	keyType, keyId, salt, err := getKeyInfo(c)
 	if err != nil {
 		return err
@@ -255,6 +267,7 @@ func promptMnemonic() (string, error) {
 
 // actionRestore restores a private key from an existing mnemonic/salt
 func actionRestore(ctx context.Context, c *cli.Command) error {
+	setLogging(c)
 	keyType, keySize, salt, err := getKeyInfo(c)
 	if err != nil {
 		return err
