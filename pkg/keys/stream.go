@@ -16,12 +16,17 @@ type StreamChaCha20 struct {
 // Read implements io.Reader by generating keystream bytes xor-ed with zero-byte buffer
 func (s *StreamChaCha20) Read(dst []byte) (int, error) {
 	totalSize := len(dst)
-	n := totalSize
-	if n == 0 {
+	if totalSize == 0 {
 		return 0, nil
+	}
+	if totalSize == 1 {
+		// ignore MaybeReadByte requests for a single byte
+		return 1, nil
 	}
 
 	// n = number of remaining bytes to read
+	n := totalSize
+
 	for n > 0 {
 		chunkSize := n
 		if chunkSize > len(s.zbuf) {
