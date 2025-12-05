@@ -102,6 +102,8 @@ func ParseMnemonic(mnemonicString string) (Mnemonic, error) {
 
 // GetWordIndex returns the index and full word from the BIP-39 word list for the given word or its 4-letter prefix.
 func GetWordIndex(word string) (int, string, error) {
+	originalWord := word
+
 	if len(word) > 4 {
 		word = word[:4]
 	}
@@ -119,5 +121,5 @@ func GetWordIndex(word string) (int, string, error) {
 		}
 	}
 
-	return -1, "", fmt.Errorf("word not found in BIP-39 word list")
+	return -1, "", fmt.Errorf("word '%s' not found in BIP-39 word list", originalWord)
 }
