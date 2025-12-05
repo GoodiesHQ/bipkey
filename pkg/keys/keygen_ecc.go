@@ -104,7 +104,7 @@ func ParseECCCurve(val string) (ECCCurveID, error) {
 }
 
 // generateEdECC generate an edwards curve ECC key
-func generateEdECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
+func generateEdECC(r DeterministicReader, id ECCCurveID) (crypto.PrivateKey, error) {
 	switch id {
 	case ECCCurveEd25519:
 		seed := make([]byte, ed25519.SeedSize)
@@ -120,7 +120,7 @@ func generateEdECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
 }
 
 // generateNistECC generates a NIST curve ECC key
-func generateNistECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
+func generateNistECC(r DeterministicReader, id ECCCurveID) (crypto.PrivateKey, error) {
 	var ecdsaCurve elliptic.Curve
 
 	switch id {
@@ -163,7 +163,7 @@ func generateNistECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
 }
 
 // generateECC generates an ECC private key of the specified size using the provided reader for randomness.
-func generateECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
+func generateECC(r DeterministicReader, id ECCCurveID) (crypto.PrivateKey, error) {
 	switch id {
 	case ECCCurveP256, ECCCurveP384, ECCCurveP521:
 		return generateNistECC(r, id)
@@ -175,7 +175,7 @@ func generateECC(r io.Reader, id ECCCurveID) (crypto.PrivateKey, error) {
 }
 
 // generateScalarWidw generates a scalar in [1, n-1] using wide byte input to reduce bias
-func generateScalarWide(r io.Reader, n *big.Int, byteLen int) (*big.Int, error) {
+func generateScalarWide(r DeterministicReader, n *big.Int, byteLen int) (*big.Int, error) {
 	buf := make([]byte, byteLen)
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return nil, err

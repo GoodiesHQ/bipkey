@@ -8,9 +8,19 @@ import (
 	"golang.org/x/crypto/chacha20"
 )
 
+type DeterministicReader interface {
+	io.Reader
+	IgnoresMaybeReadByte() bool
+}
+
 type StreamChaCha20 struct {
 	stream cipher.Stream // underlying cipher stream
 	zbuf   []byte        // zero-byte buffer for XORKeyStream
+}
+
+// IgnoresMaybeReadByte indicates that this reader ignores MaybeReadByte requests
+func (s *StreamChaCha20) IgnoresMaybeReadByte() bool {
+	return true
 }
 
 // Read implements io.Reader by generating keystream bytes xor-ed with zero-byte buffer
@@ -19,7 +29,7 @@ func (s *StreamChaCha20) Read(dst []byte) (int, error) {
 	if totalSize == 0 {
 		return 0, nil
 	}
-	if totalSize == 1 {
+	if s.IgnoresMaybeReadByte() && totalSize == 1 {
 		// ignore MaybeReadByte requests for a single byte
 		return 1, nil
 	}

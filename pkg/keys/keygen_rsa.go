@@ -3,7 +3,6 @@ package keys
 import (
 	"crypto/rsa"
 	"fmt"
-	"io"
 	"strings"
 )
 
@@ -66,7 +65,7 @@ func ParseRSAKeyID(val string) (RSAKeyID, error) {
 }
 
 // generateRSA generates an RSA private key using the provided reader for randomness
-func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
+func generateRSA(r DeterministicReader, id RSAKeyID) (*rsa.PrivateKey, error) {
 	var size = getSizeRSA(id)
 	if size == 0 {
 		return nil, fmt.Errorf("unsupported RSA key size")
@@ -77,7 +76,7 @@ func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
 
 /*
 // generateRSA generates an RSA private key using the provided reader for randomness
-func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
+func generateRSA(r DeterministicReader, id RSAKeyID) (*rsa.PrivateKey, error) {
 	var size = getSizeRSA(id)
 	if size == 0 {
 		return nil, fmt.Errorf("unsupported RSA key size")
@@ -130,7 +129,7 @@ func generateRSA(r io.Reader, id RSAKeyID) (*rsa.PrivateKey, error) {
 }
 
 // derivePrime creates a prime number of the specified bit length from the provided reader
-func derivePrime(r io.Reader, bits int) (*big.Int, error) {
+func derivePrime(r DeterministicReader, bits int) (*big.Int, error) {
 	byteLen := (bits + 7) / 8
 	buf := make([]byte, byteLen)
 
