@@ -3,7 +3,19 @@
 **bipkey** is a tool to generate and restore deterministic RSA/ECC private keys from high-entropy BIP-39 mnemonics. It was designed to be used for secure key creation and recovery for offline Certificate Authorities.
 
 ## The Goal:
-Long-term private key storage for an offline Root CA is notoriously difficult. A cryptographic key must remain confidential, intact, and recoverable for decades, often outliving multiple hardware cycles, operating systems, personnel changes, and storage media formats. See the **Other Key Storage** section.
+Long-term private key storage for an offline Root CA is notoriously difficult. A cryptographic key must remain confidential, intact, and recoverable for decades, often outliving multiple hardware cycles, operating systems, personnel changes, and storage media formats. See the **Other Key Storage** section. Here's essentially the plan:
+
+
+## How it works:
+
+1) Generate a secure, high-entropy mnemonic using BIP39 on an airgapped and encrypted device.
+2) Create a 256-bit BIP39 seed from the mnemonic and salt.
+3) Use HKDF-SHA256 key derivation function to expand the 256-bit seed into about ~8KiB of randomness.
+4) Use the HKDF-SHA256 output to seed a ChaCha20 stream as a DRBG for an arbitrary amount of data.
+5) Use the DRBG as the source for generating the necessary parts of a private key:
+   - Random scalars for use in ECC cryptography
+   - Random large primes for use in RSA cryptography
+6) Output the key and mnemonic. The key is deterministic and can be restored from the 24-word mnemonic and original seed.
 
 ## Supported Keys
 Since this is targeted for Certificate Authorities, the keys supported are those which are conducive to creating signing certificates. This includes:
