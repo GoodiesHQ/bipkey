@@ -124,7 +124,7 @@ func buildAndPackage(prefix string, target BuildTarget, version string) error {
 
 	binPath := filepath.Join(outDir, binName)
 
-	ldflags := fmt.Sprintf("-X main.Version=%s", version)
+	ldflags := fmt.Sprintf("-X main.Version=%s -w -s", version)
 	fmt.Printf("%s -> go build %s/%s\n", prefix, target.OS, target.Arch)
 
 	cmd := exec.Command(
