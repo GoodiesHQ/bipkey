@@ -16,6 +16,7 @@ import (
 )
 
 var app *cli.Command
+var Version string
 
 // initialize logging and the CLI application with commands and flags
 func init() {
@@ -25,6 +26,7 @@ func init() {
 
 	app = &cli.Command{
 		Name:        "bipkey",
+		Version:     Version,
 		Usage:       "Generate and restore RSA/ECC private keys from BIP-39 mnemonics",
 		Description: "bipkey is a tool to generate and restore deterministic RSA/ECC private keys from BIP-39 mnemonics. Used for secure key backup and recovery for offline Certificate Authorities.",
 		UsageText:   "bipkey [-ecc <curve> | -rsa <key size>] [-salt <salt value>] [generate/restore]",
