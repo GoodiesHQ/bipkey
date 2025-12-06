@@ -265,6 +265,10 @@ func createTarGz(prefix string, dir, version string) error {
 
 		header.Name = tarPath
 
+		if filepath.Base(tarPath) == BINARY_NAME {
+			header.Mode = 0o755
+		}
+
 		if err := tw.WriteHeader(header); err != nil {
 			return fmt.Errorf("failed to write tar header: %w", err)
 		}

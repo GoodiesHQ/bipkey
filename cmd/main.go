@@ -16,13 +16,17 @@ import (
 )
 
 var app *cli.Command
-var Version string
+var Version string = "dev"
 
 // initialize logging and the CLI application with commands and flags
 func init() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{
 		Out: os.Stderr,
 	}).Level(zerolog.InfoLevel)
+
+	cli.VersionPrinter = func(c *cli.Command) {
+		fmt.Printf("%s\n", c.Version)
+	}
 
 	app = &cli.Command{
 		Name:        "bipkey",
