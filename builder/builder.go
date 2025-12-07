@@ -1,9 +1,18 @@
 package main
 
+/*
+   A generic builder program to help build go packages
+   Includes:
+     - Version detection via "VERSION" file or --version <version>
+     - Build for windows/mac/linux on amd64/arm64
+     - Creates .tar.gz for mac/linux with files set to executable permissions and a .zip for Windows
+*/
+
 import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,11 +24,13 @@ import (
 	"sync"
 )
 
-const (
-	BINARY_NAME  = "bipkey"
+var BINARY_NAME string
+
+var (
 	MAIN_PKG     = "./cmd"
 	DIST_DIR     = "dist"
 	VERSION_FILE = "./VERSION"
+	VERSION      = "dev"
 )
 
 const DEFAULT_VERSION = ""
@@ -38,11 +49,10 @@ var targets = []BuildTarget{
 	{"windows", "arm64"},
 }
 
+// usage prints the usage information for the build script
 func usage() {
 	basename := filepath.Base(os.Args[0])
-	log.Printf("Usage: %s [ self | all ]\n", basename)
-	log.Printf("  self - build for the current OS/ARCH (%s/%s)\n", runtime.GOOS, runtime.GOARCH)
-	log.Printf("  all  - build for all supported OS/ARCH targets\n")
+	log.Printf("Usage: %s -name <binary name> [ -all ]\n", basename)
 	for _, target := range targets {
 		log.Printf("       > %s/%s\n", target.OS, target.Arch)
 	}
@@ -51,25 +61,42 @@ func usage() {
 func main() {
 	log.SetFlags(0)
 
-	if len(os.Args) != 2 {
+	// Parse flags
+	name := flag.String("name", "", "name of the binary project")
+	out := flag.String("out", DIST_DIR, "output directory for built binaries")
+	all := flag.Bool("all", false, "build for all supported OS/ARCH targets")
+	release := flag.Bool("release", false, "build for release (stripped binaries)")
+	version := flag.String("version", "", "version to embed in the binary (overrides VERSION file)")
+
+	flag.Parse()
+
+	// Set output directory if provided, use "dist" as default
+	if out != nil && *out != "" {
+		DIST_DIR = *out
+	}
+
+	// Validate binary name, exit if not provided
+	if name == nil || *name == "" {
 		usage()
 		os.Exit(1)
 	}
+	BINARY_NAME = *name
 
-	switch strings.ToLower(os.Args[1]) {
-	case "all":
-	case "self":
+	// If not building for all targets, limit to current OS/ARCH
+	if !*all {
 		targets = []BuildTarget{
 			{OS: runtime.GOOS, Arch: runtime.GOARCH},
 		}
-	default:
-		usage()
-		os.Exit(1)
 	}
 
+	// Read version from VERSION file, use default if not found
 	v, err := readVersion()
 	if err != nil {
 		fmt.Printf("Warn: reading version: %v", err)
+	}
+
+	if version != nil && *version != "" {
+		v = *version
 	}
 
 	msgBuilding := fmt.Sprintf("Building %s", BINARY_NAME)
@@ -88,35 +115,37 @@ func main() {
 				fmt.Sprintf("[%s/%s] ", target.OS, target.Arch),
 			)
 			defer wg.Done()
-			buildAndPackage(prefix, target, v)
+			buildAndPackage(prefix, target, v, *release)
 		}()
 	}
 
 	wg.Wait()
 }
 
+// readversion attempts to read the VERSION file, defaults to the VERSION constant if not found
 func readVersion() (string, error) {
 	data, err := os.ReadFile(VERSION_FILE)
 	if err != nil {
-		return "", fmt.Errorf("failed to read VERSION file: %w", err)
+		return VERSION, fmt.Errorf("failed to read VERSION file: %w", err)
 	}
 
 	v := strings.TrimSpace(string(data))
 	if v == "" {
-		return "", fmt.Errorf("VERSION file is empty")
+		return VERSION, fmt.Errorf("VERSION file is empty")
 	}
 
 	return v, nil
 }
 
-func buildAndPackage(prefix string, target BuildTarget, version string) error {
+func buildAndPackage(prefix string, target BuildTarget, version string, release bool) error {
+	// Create output directory
 	outDirName := fmt.Sprintf("%s-%s-%s", BINARY_NAME, target.OS, target.Arch)
 	outDir := filepath.Join(DIST_DIR, version, outDirName)
-
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return fmt.Errorf("failed to create dist dir: %w", err)
 	}
 
+	// Build the binary name and path
 	binName := BINARY_NAME
 	if target.OS == "windows" {
 		binName += ".exe"
@@ -124,15 +153,26 @@ func buildAndPackage(prefix string, target BuildTarget, version string) error {
 
 	binPath := filepath.Join(outDir, binName)
 
-	ldflags := fmt.Sprintf("-X main.Version=%s -w -s", version)
+	// Set the ldflags
+	ldflags := ""
+	if version != "" {
+		ldflags += fmt.Sprintf("-X main.Version=%s", version)
+	}
+	if release {
+		ldflags += " -w -s"
+	}
 	fmt.Printf("%s -> go build %s/%s\n", prefix, target.OS, target.Arch)
 
-	cmd := exec.Command(
-		"go", "build",
+	args := []string{
+		"build",
 		"-o", binPath,
-		"-ldflags", ldflags,
-		MAIN_PKG,
-	)
+	}
+	if ldflags != "" {
+		args = append(args, "-ldflags", ldflags)
+	}
+	args = append(args, MAIN_PKG)
+
+	cmd := exec.Command("go", args...)
 
 	cmd.Env = append(os.Environ(), "GOOS="+target.OS, "GOARCH="+target.Arch)
 
