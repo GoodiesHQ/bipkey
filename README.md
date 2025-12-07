@@ -129,6 +129,43 @@ Restoring the key can be done using the mnemonic phrase and the original salt (i
     EnCw94MDww/ehqTIlCBCiKekkyQ8pf94Xndu8TqRN9XTuZJ844EEN8k=
     -----END PRIVATE KEY-----
 
+## Encrypted Key Generation/Restoration
+
+This example simply demonstrates generating and restoring a password-protected PKCS8 key file.
+
+    ./bipkey generate -ecc 256 -p "MyPassword" -o key1_enc.pem
+    ...
+    creek alley ivory charge surface swallow grow valley swap cry machine bacon rain there purpose cycle poet popular glass episode cook brave cause safe
+    ...
+    -----BEGIN ENCRYPTED PRIVATE KEY-----
+    MIHsMFcGCSqGSIb3DQEFDTBKMCkGCSqGSIb3DQEFDDAcBAhgN6WWgGYMpQICJxAw
+    DAYIKoZIhvcNAgkFADAdBglghkgBZQMEASoEEOOzVD9SmwpT9pRTcJGwHp4EgZAN
+    kOg0cA50ss6V2BYqilWHXZvZS6liGiUzcMfH1bTc6wUKzQHN9sQafvs2JLpup7LU
+    GL6TPfkXgqDIs+OLGEFIj3BMZHXKE95ahvaDjKM5iEKnsykpN6/IRxIMp9dk4KhL
+    xeeNifmbMhYILsnktJGiUjm72/9pOdt59ITYp+yZ6O3qWGYm2xwk4j/trtqJaaM=
+    -----END ENCRYPTED PRIVATE KEY-----
+
+    ./bipkey restore -ecc 256 -p "MyPassword" -o key2_enc.pem -m "creek alley ivory charge surface swallow grow valley swap cry machine bacon rain there purpose cycle poet popular glass episode cook brave cause safe"
+    ...
+    -----BEGIN ENCRYPTED PRIVATE KEY-----
+    MIHsMFcGCSqGSIb3DQEFDTBKMCkGCSqGSIb3DQEFDDAcBAgUtHLEWaTYbQICJxAw
+    DAYIKoZIhvcNAgkFADAdBglghkgBZQMEASoEEIOqf2zyc3gVaARzL/AC4ZwEgZAi
+    tHZflQDfwutHyPHD+/w6OWYsnD1PDlPnMrcRi9vYXNhpYa/InEXF9+jytN/KYR8z
+    SLSfXCZZDrza7Q0gPPb0uRdvtqdw8xJT4Ti5hlQY+cJVZdkeVvkTCRNtUIky51c5
+    rSJt88Fdt2/kYOk7j978rfEZCDHgj58qUA85TZtmdWz+6rhcXfU3v3Lmj2Op4I4=
+    -----END ENCRYPTED PRIVATE KEY-----
+   
+Despite using the same password, the resulting ENCRYPTED PRIVATE KEY blocks are different. However, decrypting them with their respective passwords will result in the same keys:
+
+    # openssl pkcs8 -in key1_enc.pem -out key1.pem -passin "pass:MyPassword"
+    # openssl pkcs8 -in key2_enc.pem -out key2.pem -passin "pass:MyPassword"
+    # sha256sum key1_enc.pem key2_enc.pem key1.pem key2.pem 
+    2c77922b26921fbafcb3542a38749dac308fcf7a0ff19549f8f6a07f48db498c  key1_enc.pem
+    ef3f4d3aea6762e76193c98bcf0f59820470a724c2510d403ef271d4e43b131e  key2_enc.pem
+    ad9c5fbd5d799ab2fd28d69e7ecb522d7f08694ca72d75c395f1656535360325  key1.pem
+    ad9c5fbd5d799ab2fd28d69e7ecb522d7f08694ca72d75c395f1656535360325  key2.pem
+
+
 ## Other Key Storage
 #### USB Drive
 Pros:
