@@ -34,6 +34,9 @@ Since this is targeted for Certificate Authorities, the keys supported are those
 
 Some key types (P-521, Ed25519, RSA-8192) come with a warning: **\_\_\_\_\_\_\_ may have performance or compatibility implications. Ensure your environment supports it adequately.**
 
+## Key Passwords:
+You can optionally supply `--password/-p "<password>"` to encrypt the PKCS8 key. Note that this encryption is inherently non-deterministic. Encrypting the same key with the same password will result in different values for the final encrypted key, but the underlying key remains identical. This password is **only** used for PKCS8 encryption at rest and is not used during key derivation or generation. Therefore, unlike the mnemonic or salt, the PKCS8 password is not required to be used during key restoration.
+
 ## Key Generation:
 
     NAME:
@@ -46,11 +49,12 @@ Some key types (P-521, Ed25519, RSA-8192) come with a warning: **\_\_\_\_\_\_\_ 
        --help, -h  show help
     
     GLOBAL OPTIONS:
-       --verbose, -v             Enable verbose logging output
-       --salt string, -s string  (Recommended) optional salt value for key derivation
-       --ecc string              Generate an ECC private key with the specified curve
-       --rsa string              Generate an RSA private key with the specified bit size 
-       --out string, -o string   Output file to save the generated key in PEM format.
+       --verbose, -v                 Enable verbose logging output
+       --salt string, -s string      (Recommended) optional salt value for key derivation
+       --ecc string                  Generate an ECC private key with the specified curve (e.g. p256, p384, p521, ed25519)
+       --rsa string                  Generate an RSA private key with the specified bit size (2048, 3072, 4096)
+       --out string, -o string       Output file to save the generated key in PEM format.
+       --password string, -p string  Optional password to encrypt the private key. Encryption is not deterministic, but the underlying key is.
 
 **Example:**
 
@@ -91,11 +95,12 @@ Restoring the key can be done using the mnemonic phrase and the original salt (i
        --help, -h                    show help
     
     GLOBAL OPTIONS:
-       --verbose, -v             Enable verbose logging output
-       --salt string, -s string  (Recommended) optional salt value for key derivation
-       --ecc string              Generate an ECC private key with the specified curve
-       --rsa string              Generate an RSA private key with the specified bit size
-       --out string, -o string   Output file to save the generated key in PEM format.
+       --verbose, -v                 Enable verbose logging output
+       --salt string, -s string      (Recommended) optional salt value for key derivation
+       --ecc string                  Generate an ECC private key with the specified curve (e.g. p256, p384, p521, ed25519)
+       --rsa string                  Generate an RSA private key with the specified bit size (2048, 3072, 4096)
+       --out string, -o string       Output file to save the generated key in PEM format.
+       --password string, -p string  Optional password to encrypt the private key. Encryption is not deterministic, but the underlying key is.
 
 **Example:**
 

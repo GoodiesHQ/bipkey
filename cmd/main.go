@@ -33,7 +33,7 @@ func init() {
 		Version:     Version,
 		Usage:       "Generate and restore RSA/ECC private keys from BIP-39 mnemonics",
 		Description: "bipkey is a tool to generate and restore deterministic RSA/ECC private keys from BIP-39 mnemonics. Used for secure key backup and recovery for offline Certificate Authorities.",
-		UsageText:   "bipkey [-ecc <curve> | -rsa <key size>] [-salt <salt value>] [generate/restore]",
+		UsageText:   "bipkey [-ecc <curve> | -rsa <key size>] [-salt <salt value>] [-password <pkcs8 password>] [generate/restore]",
 		Commands: []*cli.Command{
 			{
 				Name:   "generate",
@@ -136,6 +136,12 @@ func init() {
 				Usage:   "Output file to save the generated key in PEM format.",
 				Value:   "",
 			},
+			&cli.StringFlag{
+				Name:    "password",
+				Aliases: []string{"p"},
+				Usage:   "Optional password to encrypt the private key. Encryption is not deterministic, but the underlying key is.",
+				Value:   "",
+			},
 		},
 	}
 }
@@ -183,11 +189,19 @@ func writeFile(c *cli.Command, data string) error {
 	return nil
 }
 
+type KeyInfo struct {
+	KeyType  keys.KeyType
+	KeyId    int
+	Salt     string
+	Password string
+}
+
 // getKeyInfo retrieves the key type, size, and salt from the command flags
-func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
+func getKeyInfo(c *cli.Command) (*KeyInfo, error) {
 	eccOpt := c.String("ecc")
 	rsaOpt := c.String("rsa")
 	salt := c.String("salt")
+	password := c.String("password")
 
 	// key info defaults
 	keyType := keys.KeyTypeNone
@@ -195,12 +209,12 @@ func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
 
 	// RSA or ECC must be specified
 	if eccOpt == "" && rsaOpt == "" {
-		return keys.KeyTypeNone, 0, "", cli.Exit("At least one of -ecc or -rsa flags must be specified.", 1)
+		return nil, cli.Exit("At least one of -ecc or -rsa flags must be specified.", 1)
 	}
 
 	// both ECC and RSA cannot be specified
 	if eccOpt != "" && rsaOpt != "" {
-		return keys.KeyTypeNone, 0, "", cli.Exit("Only one of -ecc or -rsa flags may be specified.", 1)
+		return nil, cli.Exit("Only one of -ecc or -rsa flags may be specified.", 1)
 	}
 
 	if eccOpt != "" {
@@ -208,7 +222,7 @@ func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
 		keyType = keys.KeyTypeECC
 		eccId, err := keys.ParseECCCurve(eccOpt)
 		if err != nil {
-			return keys.KeyTypeNone, 0, "", cli.Exit(err.Error(), 1)
+			return nil, cli.Exit(err.Error(), 1)
 		}
 		keyId = int(eccId)
 	}
@@ -218,14 +232,14 @@ func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
 		keyType = keys.KeyTypeRSA
 		rsaId, err := keys.ParseRSAKeyID(rsaOpt)
 		if err != nil {
-			return keys.KeyTypeNone, 0, "", cli.Exit(err.Error(), 1)
+			return nil, cli.Exit(err.Error(), 1)
 		}
 		keyId = int(rsaId)
 	}
 
 	// validate key type and size
 	if keyType == keys.KeyTypeNone {
-		return keys.KeyTypeNone, 0, "", cli.Exit("Invalid key type specified.", 1)
+		return nil, cli.Exit("Invalid key type specified.", 1)
 	}
 
 	// salt is not required but is recommended
@@ -233,22 +247,36 @@ func getKeyInfo(c *cli.Command) (keys.KeyType, int, string, error) {
 		log.Warn().Msg("Salt value is not provided. It's recommended to use a salt value for better security.")
 	}
 
-	return keyType, keyId, salt, nil
+	return &KeyInfo{
+		KeyType:  keyType,
+		KeyId:    keyId,
+		Salt:     salt,
+		Password: password,
+	}, nil
 }
 
 // actionGenerate generates a new private key and mnemonic based on the provided command flags
 func actionGenerate(ctx context.Context, c *cli.Command) error {
 	setLogging(c)
-	keyType, keyId, salt, err := getKeyInfo(c)
+	ki, err := getKeyInfo(c)
 	if err != nil {
 		return err
 	}
 
-	k, err := keys.GenerateKey(ctx, keyType, keyId, salt)
+	k, err := keys.GenerateKey(ctx, ki.KeyType, ki.KeyId, ki.Salt)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate key")
 		return err
 	}
+
+	if ki.Password != "" {
+		if err := k.Encrypt(ki.Password); err != nil {
+			log.Error().Err(err).Msg("Failed to encrypt the private key")
+			return err
+		}
+		log.Debug().Msg("Encrypted the private key with the provided password.")
+	}
+
 	k.Display()
 	if err := writeFile(c, k.PEM()); err != nil {
 		log.Error().Err(err).Msg("Failed to write key to file")
@@ -276,7 +304,7 @@ func promptMnemonic() (string, error) {
 // actionRestore restores a private key from an existing mnemonic/salt
 func actionRestore(ctx context.Context, c *cli.Command) error {
 	setLogging(c)
-	keyType, keySize, salt, err := getKeyInfo(c)
+	ki, err := getKeyInfo(c)
 	if err != nil {
 		return err
 	}
@@ -299,9 +327,17 @@ func actionRestore(ctx context.Context, c *cli.Command) error {
 
 	copy(mnemonic[:], mnemonicWords)
 
-	k, err := keys.GenerateKeyFromMnemonic(ctx, keyType, keySize, salt, mnemonic)
+	k, err := keys.GenerateKeyFromMnemonic(ctx, ki.KeyType, ki.KeyId, ki.Salt, mnemonic)
 	if err != nil {
 		return err
+	}
+
+	if ki.Password != "" {
+		if err := k.Encrypt(ki.Password); err != nil {
+			log.Error().Err(err).Msg("Failed to encrypt the private key")
+			return err
+		}
+		log.Debug().Msg("Encrypted the private key with the provided password.")
 	}
 
 	k.Display()

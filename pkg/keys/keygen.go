@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto"
 	"crypto/sha256"
-	"crypto/x509"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
 	"github.com/tyler-smith/go-bip39"
+	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -54,7 +54,7 @@ func GenerateKeyFromMnemonic(ctx context.Context, keyType KeyType, keyId int, sa
 	}
 
 	// marshal private key to DER format
-	der, err := x509.MarshalPKCS8PrivateKey(privKey)
+	der, err := pkcs8.MarshalPrivateKey(privKey, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal EC private key: %w", err)
 	}

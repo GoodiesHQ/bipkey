@@ -7,6 +7,7 @@ import (
 )
 
 const SALT = "bipkey-test-salt"
+const PASSWORD = "bipkey-test-password"
 
 type testKey struct {
 	keyId               int
@@ -24,11 +25,23 @@ func TestKeyGeneration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to generate ECC key: %v", err)
 		}
+		if err := k1.Encrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to encrypt ECC key: %v", err)
+		}
+		if err := k1.Decrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to decrypt ECC key: %v", err)
+		}
 		fprint1 := k1.Fingerprint()
 
 		k2, err := GenerateKeyFromMnemonic(t.Context(), KeyTypeECC, int(keyType), SALT, k1.mnemonic)
 		if err != nil {
 			t.Fatalf("failed to restore ECC key from mnemonic: %v", err)
+		}
+		if err := k2.Encrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to encrypt ECC key: %v", err)
+		}
+		if err := k2.Decrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to decrypt ECC key: %v", err)
 		}
 		fprint2 := k2.Fingerprint()
 
@@ -42,11 +55,23 @@ func TestKeyGeneration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to generate RSA key: %v", err)
 		}
+		if err := k1.Encrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to encrypt RSA key: %v", err)
+		}
+		if err := k1.Decrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to decrypt RSA key: %v", err)
+		}
 		fprint1 := k1.Fingerprint()
 
 		k2, err := GenerateKeyFromMnemonic(t.Context(), KeyTypeRSA, int(keyType), SALT, k1.mnemonic)
 		if err != nil {
 			t.Fatalf("failed to restore RSA key from mnemonic: %v", err)
+		}
+		if err := k2.Encrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to encrypt RSA key: %v", err)
+		}
+		if err := k2.Decrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to decrypt RSA key: %v", err)
 		}
 		fprint2 := k2.Fingerprint()
 
@@ -90,9 +115,24 @@ func TestECCKeyRestoration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to generate ECC key from mnemonic: %v", err)
 		}
-		fingerprint := key.Fingerprint()
-		if fingerprint != test.expectedFingerprint {
-			t.Fatalf("unexpected ECC key fingerprint: got %s, want %s", fingerprint, test.expectedFingerprint)
+
+		fingerprint1 := key.Fingerprint()
+
+		if err := key.Encrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to encrypt ECC key: %v", err)
+		}
+		if err := key.Decrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to decrypt ECC key: %v", err)
+		}
+
+		fingerprint2 := key.Fingerprint()
+
+		if fingerprint1 != fingerprint2 {
+			t.Fatalf("ECC key fingerprints do not match after encrypt/decrypt: %s != %s", fingerprint1, fingerprint2)
+		}
+
+		if fingerprint1 != test.expectedFingerprint {
+			t.Fatalf("unexpected ECC key fingerprint: got %s, want %s", fingerprint1, test.expectedFingerprint)
 		}
 	}
 }
@@ -132,9 +172,24 @@ func TestRSAKeyRestoration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to generate RSA key from mnemonic: %v", err)
 		}
-		fingerprint := key.Fingerprint()
-		if fingerprint != test.expectedFingerprint {
-			t.Fatalf("unexpected RSA key fingerprint: got %s, want %s", fingerprint, test.expectedFingerprint)
+
+		fingerprint1 := key.Fingerprint()
+
+		if err := key.Encrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to encrypt RSA key: %v", err)
+		}
+		if err := key.Decrypt(PASSWORD); err != nil {
+			t.Fatalf("failed to decrypt RSA key: %v", err)
+		}
+
+		fingerprint2 := key.Fingerprint()
+
+		if fingerprint1 != fingerprint2 {
+			t.Fatalf("RSA key fingerprints do not match after encrypt/decrypt: %s != %s", fingerprint1, fingerprint2)
+		}
+
+		if fingerprint1 != test.expectedFingerprint {
+			t.Fatalf("unexpected RSA key fingerprint: got %s, want %s", fingerprint1, test.expectedFingerprint)
 		}
 	}
 }
